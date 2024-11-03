@@ -1,0 +1,150 @@
+# asset_pricing/fx/spot/fetch.py
+
+import sys
+import os
+import json
+import logging
+import random
+import time
+from datetime import datetime, timedelta
+from typing import Union
+
+import requests
+
+from asset_pricing.fx.spot.config import (
+    load_config,
+    MockedFXSpotProfile,
+    AlphaVantageFXSpotProfile,
+)
+from asset_pricing.fx.spot.models import FXSpotRate
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def fetch_fx_spot_rates(config_file: str, profile_name: str) -> None:
+    config = load_config(config_file)
+    try:
+        profile = config.get_spot_profile(profile_name)
+    except ValueError as e:
+        logger.error(str(e))
+        sys.exit(1)
+
+    if isinstance(profile, MockedFXSpotProfile):
+        run_mocked_fetch(profile)
+    elif isinstance(profile, AlphaVantageFXSpotProfile):
+        run_alphavantage_fetch(profile)
+    else:
+        logger.error(f"Unsupported profile type for '{profile_name}'")
+        sys.exit(1)
+
+def run_mocked_fetch(profile: MockedFXSpotProfile) -> None:
+    output_path = profile.local_caching_path
+    num_records = profile.num_records
+    seed_data_path = profile.seed_data_path
+
+    if not os.path.exists(seed_data_path):
+        logger.error(f"Seed data file {seed_data_path} not found.")
+        sys.exit(1)
+    with open(seed_data_path, 'r') as f:
+        seed_data = json.load(f)
+
+    symbols = seed_data.get('symbols', profile.tickers)
+    base_rates = seed_data.get('base_rates', {symbol: 1.0 for symbol in profile.tickers})
+
+    os.makedirs(output_path, exist_ok=True)
+
+    for _ in range(num_records):
+        symbol = random.choice(symbols)
+        base_rate = base_rates.get(symbol, 1.0)
+        rate_variation = random.uniform(-0.05, 0.05)  # +/-5%
+        rate = base_rate * (1 + rate_variation)
+        date = datetime.now() - timedelta(days=random.randint(0, 365))
+
+        fx_rate = FXSpotRate(
+            symbol=symbol,
+            date=date,
+            rate=round(rate, 6)
+        )
+
+        # Save data to local caching path
+        file_name = f"{fx_rate.symbol.replace('/', '_')}_{fx_rate.date.strftime('%Y%m%d%H%M%S%f')}.json"
+        file_path = os.path.join(output_path, file_name)
+        with open(file_path, 'w') as f:
+            json.dump(fx_rate.dict(), f, default=str)
+    logger.info(f"Generated {num_records} mock FX spot rate records in {output_path}")
+
+def run_alphavantage_fetch(profile: AlphaVantageFXSpotProfile) -> None:
+    api_key = profile.api_key
+    base_url = profile.base_url
+    tickers = profile.tickers
+    polling_interval = profile.polling_interval
+    local_caching_path = profile.local_caching_path
+
+    os.makedirs(local_caching_path, exist_ok=True)
+
+    logger.info(f"Starting AlphaVantage polling for FX spot rates every {polling_interval} seconds.")
+    try:
+        while True:
+            total_fetched = 0
+            for pair in tickers:
+                fx_rate = fetch_alphavantage_data(pair, api_key, base_url)
+                if fx_rate:
+                    save_fx_rate(fx_rate, local_caching_path)
+                    total_fetched += 1
+            logger.info(f"Fetched and saved {total_fetched} FX spot rates.")
+            time.sleep(polling_interval)
+    except KeyboardInterrupt:
+        logger.info("Polling stopped by user.")
+
+def fetch_alphavantage_data(pair: str, api_key: str, base_url: str) -> Union[FXSpotRate, None]:
+    from_currency, to_currency = pair.split('/')
+    params = {
+        "function": "CURRENCY_EXCHANGE_RATE",
+        "from_currency": from_currency,
+        "to_currency": to_currency,
+        "apikey": api_key
+    }
+    try:
+        response = requests.get(base_url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if "Realtime Currency Exchange Rate" in data:
+                exchange_rate = data["Realtime Currency Exchange Rate"]
+                fx_rate = FXSpotRate(
+                    symbol=f"{from_currency}/{to_currency}",
+                    date=datetime.now(),
+                    rate=float(exchange_rate["5. Exchange Rate"])
+                )
+                logger.debug(f"Fetched FX spot rate: {fx_rate}")
+                return fx_rate
+            elif "Note" in data:
+                logger.error(f"API Error: {data['Note']}")
+                return None
+            else:
+                logger.error(f"Unexpected response for {pair}: {data}")
+                return None
+        else:
+            logger.error(f"HTTP error {response.status_code} fetching data for {pair}")
+            return None
+    except Exception as e:
+        logger.error(f"Exception occurred while fetching data for {pair}: {e}")
+        return None
+
+def save_fx_rate(fx_rate: FXSpotRate, local_caching_path: str) -> None:
+    file_name = f"{fx_rate.symbol.replace('/', '_')}_{fx_rate.date.strftime('%Y%m%d%H%M%S%f')}.json"
+    file_path = os.path.join(local_caching_path, file_name)
+    with open(file_path, 'w') as f:
+        json.dump(fx_rate.dict(), f, default=str)
+    logger.info(f"Saved FX spot rate for {fx_rate.symbol} at {fx_rate.date}")
+
+def main() -> None:
+    if len(sys.argv) != 3:
+        print("Usage: fetch-fx-spot <config_file> <profile_name>")
+        sys.exit(1)
+    config_file = sys.argv[1]
+    profile_name = sys.argv[2]
+    fetch_fx_spot_rates(config_file, profile_name)
+
+if __name__ == "__main__":
+    main()
+

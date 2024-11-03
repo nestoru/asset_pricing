@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "asset_pricing"
+version = "0.1.0"
+description = "A package to manage asset pricing information"
+authors = ["Nestor Urquiza <nestor.urquiza@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4.0"
+requests = "^2.32.3"
+pydantic = "^2.9.2"
+pyspark = "^3.5.3"
+azure-storage-blob = "^12.23.1"
+
+[tool.poetry.scripts]
+fetch-fx-spot = "asset_pricing.fx.spot.fetch:main"
+process-fx-spot = "asset_pricing.fx.spot.process:main"
+generate-mock-fx-spot = "asset_pricing.fx.scripts.generate_mock_data:main"

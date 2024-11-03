@@ -1,0 +1,9 @@
+{
+  "symbols": ["EUR/USD", "USD/JPY", "GBP/USD"],
+  "base_rates": {
+    "EUR/USD": 1.1,
+    "USD/JPY": 110.0,
+    "GBP/USD": 1.3
+  }
+}
+
