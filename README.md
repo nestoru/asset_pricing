@@ -12,29 +12,7 @@ Since datafeeds for development purposes can be expensive we focus on just two p
 There are two main steps, the "fetch" step which retrieved and stores raw data somewhere and the "process" step which parses the raw data and populates the database. These steps are both "profile" dependent.
 
 ```
-asset-pricing/
-├── README.md
-├── pyproject.toml
-├── .gitignore
-├── .flake8
-├── mypy.ini
-├── config.json
-├── seed_data.json
-├── asset_pricing/
-│   ├── __init__.py
-│   ├── fx/
-│   │   ├── __init__.py
-│   │   ├── spot/
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py
-│   │   │   ├── fetch.py
-│   │   │   ├── process.py
-│   │   │   ├── models.py
-│   │   │   └── sql/
-│   │   │       └── fx_spot.sql
-
-
-nu@Nestors-MacBook-Pro asset-pricing % tree -a --gitignore
+nu@Nestors-MacBook-Pro asset-pricing % tree -a --gitignore -I .git
 .
 ├── .flake8
 ├── .gitignore
@@ -46,19 +24,25 @@ nu@Nestors-MacBook-Pro asset-pricing % tree -a --gitignore
 │       └── spot
 │           ├── __init__.py
 │           ├── config.py
+│           ├── config.py.1
+│           ├── config.py.2
+│           ├── config.py.3
 │           ├── fetch.py
+│           ├── fetch.py.1
+│           ├── fetch.py.2
+│           ├── fetch.py.3
 │           ├── models.py
 │           ├── process.py
+│           ├── process.py.1
+│           ├── process.py.2
+│           ├── process.py.3
 │           ├── seed_data.json
 │           └── sql
 │               └── fx_spot.sql
 ├── mypy.ini
+├── poetry.lock
 └── pyproject.toml
-
-
 ```
-
-nu@Nestors-MacBook-Pro asset-pricing % tree -a --gitignore
 
 ## Preconfitions
 - A .config.json file includes all the necessary configuration information and it is mandatory as argument for all operations. All asset_pricing tables use precisely that schema. This setup ensures that code remains consistent across different environments, allowing developers to test locally and DevOps to deploy in scalable cloud environments by simply modifying the .config.json file.
@@ -137,9 +121,9 @@ pipx install poetry
 
 To create the necessary database schema and tables for FX Spot rates, run the following command:
 
-```bash
+```
 psql -h localhost -U your_username -d asset_pricing_db -f asset_pricing/fx/spot/sql/fx_spot.sql
-
+```
 
 ## Building
 Uses poetry for dependency management and packaging. 
@@ -170,6 +154,7 @@ poetry run process-fx-spot .config.json alphavantage_fx_batch
 # Process mocked fx spot fetched data
 poetry run process-fx-spot .config.json mocked_fx_spot_batch
 ```
+
 To manually test that the fx spot rates are in the db:
 ```
 select * from asset_pricing.fx_spot_rates;
