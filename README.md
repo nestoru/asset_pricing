@@ -150,3 +150,20 @@ To manually test that the fx spot rates are in the db:
 ```
 select * from asset_pricing.fx_spot_rates;
 ```
+
+### Investors
+The investors module handles investor portfolio management and valuation. It provides functionality for:
+- Managing investor positions across different asset types
+- Portfolio valuation and aggregation
+- Position-specific calculations and analytics
+- Value portfolios when we have current pricing data for all positions, otherwise error
+
+It uses spark to handle portfolios with millions of positions and thousands of investors efficiently. Rate lookups are parallelized, position valuations are computed in parallel, aggregations are distributed, and data is processed in partitions.
+
+```
+# Create mock investments for an investor
+poetry run mock-investor-investments .config.json "John Doe"
+
+# Value the investor's portfolio
+poetry run investor-portfolio-pricing .config.json "John Doe"
+```

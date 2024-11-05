@@ -10,8 +10,11 @@ requests = "^2.32.3"
 pydantic = "^2.9.2"
 pyspark = "^3.5.3"
 azure-storage-blob = "^12.23.1"
+psycopg2-binary = "^2.9.1"
 
 [tool.poetry.scripts]
 fetch-fx-spot = "asset_pricing.fx.spot.fetch:main"
 process-fx-spot = "asset_pricing.fx.spot.process:main"
 generate-mock-fx-spot = "asset_pricing.fx.scripts.generate_mock_data:main"
+mock-investor-investments = "asset_pricing.investors.mock_data:main"
+investor-portfolio-pricing = "asset_pricing.investors.pricing:main"
