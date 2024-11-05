@@ -153,12 +153,16 @@ select * from asset_pricing.fx_spot_rates;
 
 ### Investors
 The investors module handles investor portfolio management and valuation. It provides functionality for:
-- Managing investor positions across different asset types
-- Portfolio valuation and aggregation
+- Managing investor positions across different asset types (starting with FX Spot)
+- Portfolio valuation and aggregation with detailed P&L tracking
 - Position-specific calculations and analytics
-- Value portfolios when we have current pricing data for all positions, otherwise error
+- Strict validation ensuring portfolios are only valued with current market data
 
-It uses spark to handle portfolios with millions of positions and thousands of investors efficiently. Rate lookups are parallelized, position valuations are computed in parallel, aggregations are distributed, and data is processed in partitions.
+Built with ApacheSpark for enterprise-scale performance:
+- Handles portfolios with millions of positions and thousands of investors
+- Parallel rate lookups and position valuations
+- Distributed aggregations and computations
+- Efficient partitioned data processing
 
 ```
 # Create mock investments for an investor
